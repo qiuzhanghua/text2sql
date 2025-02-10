@@ -10,8 +10,10 @@ from sqlalchemy.orm import sessionmaker
 
 from pathlib import Path
 
+from openai import AsyncOpenAI
 from pydantic_ai import Agent
-from pydantic_ai.models.ollama import OllamaModel
+from pydantic_ai.models.openai import OpenAIModel
+
 
 from typing import List, Optional
 from pydantic import BaseModel
@@ -169,6 +171,7 @@ Database schema:
     b = "\n\n".join(ddls)
     return a + b
 
+
 def main():
     all_tables_info = get_all_tables_info()
     ddls = [pgtable_to_custom_format(table_info) for table_info in all_tables_info]
@@ -184,8 +187,17 @@ def main():
 
     print(f"Using Ollama with {model_name} ...")
 
-    model = OllamaModel(model_name)
-    agent = Agent(model=model, system_prompt=sp)
+    openai_client = AsyncOpenAI(
+        api_key="unused",
+        base_url="http://localhost:11434/v1",
+    )
+
+    model = OpenAIModel(model_name, openai_client=openai_client)
+
+    agent = Agent(
+        model,
+        system_prompt=sp,
+    )
 
     result = agent.run_sync('查询名字为"打印机"的库存数量')
     print(result.data)
